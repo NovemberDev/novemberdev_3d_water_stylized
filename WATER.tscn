@@ -1,0 +1,118 @@
+[gd_scene load_steps=11 format=2]
+
+[ext_resource path="res://assets/textures/water_ripple_0.png" type="Texture" id=1]
+[ext_resource path="res://assets/textures/sky.png" type="Texture" id=25]
+
+[sub_resource type="PlaneMesh" id=1]
+size = Vector2( 150, 130 )
+subdivide_width = 10
+subdivide_depth = 10
+
+[sub_resource type="Shader" id=2]
+code = "shader_type spatial;
+render_mode blend_mix,unshaded;
+
+uniform vec2 scale = vec2(2, 6);
+uniform sampler2D noise;
+uniform vec2 distortion_scale = vec2(1, 1);
+uniform float intensity = 1;
+uniform float speed = 0.1;
+uniform vec4 base_color : hint_color;
+uniform sampler2D ripple;
+
+void vertex() {
+	VERTEX.y += (0.3 * sin(VERTEX.x * 3.0 + TIME * 0.5)) + (0.2 * sin(VERTEX.y * 2.5 + TIME * 0.5));
+}
+
+void fragment() {
+	ALBEDO = base_color.rgb + sin(TIME * 0.25) * 0.1;
+	ALBEDO += 0.8 * SCREEN_UV.y;
+	ALBEDO -= 0.8 * (1.0-SCREEN_UV.y);
+	ALBEDO -= 0.8 * texture(ripple, UV - texture(noise, 0.8 * UV*scale*distortion_scale + TIME*speed).xy - 0.5 * intensity).rgb;
+	ALBEDO += 0.8 * texture(ripple, UV - texture(noise, UV*scale*distortion_scale + TIME*speed).xy - 0.5 * intensity).rgb;
+	
+	float depth = texture(DEPTH_TEXTURE, SCREEN_UV).r;
+	depth = depth * 2.0 - 1.0;
+	float z = -PROJECTION_MATRIX[3][2] / (depth + PROJECTION_MATRIX[2][2]);
+	float delta = -(z - VERTEX.z);
+	float att = exp(-delta);
+	ALBEDO += texture(ripple, 3.0 * att * SCREEN_UV - texture(noise, SCREEN_UV*scale*0.6*distortion_scale + TIME*speed*2.0).xy - 0.5 * intensity).rgb;
+}"
+
+[sub_resource type="OpenSimplexNoise" id=8]
+seed = 3
+octaves = 4
+persistence = 0.111
+lacunarity = 2.79
+
+[sub_resource type="NoiseTexture" id=9]
+seamless = true
+noise = SubResource( 8 )
+
+[sub_resource type="ShaderMaterial" id=5]
+shader = SubResource( 2 )
+shader_param/scale = Vector2( 6, 6 )
+shader_param/distortion_scale = Vector2( 1.344, 1.5 )
+shader_param/intensity = -0.114
+shader_param/speed = 0.1
+shader_param/base_color = Color( 0.376471, 0.941176, 0.968627, 1 )
+shader_param/noise = SubResource( 9 )
+shader_param/ripple = ExtResource( 1 )
+
+[sub_resource type="PanoramaSky" id=6]
+radiance_size = 0
+panorama = ExtResource( 25 )
+
+[sub_resource type="Environment" id=7]
+background_mode = 2
+background_sky = SubResource( 6 )
+background_sky_custom_fov = 113.2
+background_sky_orientation = Basis( 0.766044, 0, 0.642788, 0, 1, 0, -0.642788, 0, 0.766044 )
+fog_depth_curve = 1.23114
+fog_transmit_curve = 0.31864
+fog_height_curve = 0.0883883
+ssao_radius = 1.77
+ssao_intensity = 109.21
+dof_blur_far_distance = 97.0
+dof_blur_near_distance = 7.07
+dof_blur_near_transition = 10.87
+dof_blur_near_amount = 0.3
+glow_enabled = true
+glow_intensity = 0.29
+glow_strength = 1.2
+glow_blend_mode = 1
+glow_hdr_threshold = 1.41
+glow_hdr_luminance_cap = 71.25
+glow_hdr_scale = 4.0
+
+[sub_resource type="CubeMesh" id=10]
+size = Vector3( 20, 20, 20 )
+
+[node name="BACK" type="Spatial"]
+
+[node name="WATER" type="MeshInstance" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.39344, 0 )
+mesh = SubResource( 1 )
+material/0 = SubResource( 5 )
+
+[node name="Camera" type="Camera" parent="."]
+transform = Transform( 0.689872, -0.62631, 0.363059, 0, 0.501511, 0.865151, -0.723931, -0.596844, 0.345978, 19.374, 23.745, 18.648 )
+current = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource( 7 )
+
+[node name="MeshInstance" type="MeshInstance" parent="."]
+transform = Transform( 0.861921, -0.380709, -0.334892, 0.40404, 0.914741, 0, 0.30634, -0.13531, 0.942256, 0, -2.06271, 0 )
+mesh = SubResource( 10 )
+material/0 = null
+
+[node name="MeshInstance2" type="MeshInstance" parent="."]
+transform = Transform( 0.429417, -0.189673, -0.882964, 0.40404, 0.914741, 0, 0.807684, -0.356753, 0.469441, 12.5524, -2.06271, -10.4797 )
+mesh = SubResource( 10 )
+material/0 = null
+
+[node name="MeshInstance3" type="MeshInstance" parent="."]
+transform = Transform( 0.914555, -0.403958, -0.0201921, 0.40404, 0.914741, 0, 0.0184705, -0.00815845, 0.999796, -8.01682, -2.06271, 15.7295 )
+mesh = SubResource( 10 )
+material/0 = null
